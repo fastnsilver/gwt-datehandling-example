@@ -5,7 +5,7 @@
 	
     
 	<!-- Specify the app entry point class. -->
-	<entry-point class="me.fns.gwt.datehandling.client.Example" />
+	<entry-point class="me.fns.gwt.datehandling.client.ExampleHome" />
 
 	<!-- Specify the paths for translatable code -->
 	<!-- Ui and client-side GWT code -->

@@ -10,7 +10,7 @@ import com.google.gwt.view.client.TreeViewModel;
 /**
  * Entry point classes define <code>onModuleLoad()</code>.
  */
-public class Example implements EntryPoint {
+public class ExampleHome implements EntryPoint {
 
 	/**
 	 * The model that defines the nodes in the tree.

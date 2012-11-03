@@ -26,7 +26,7 @@ import com.google.gwt.junit.client.GWTTestCase;
  */
 public class CSTimeUtilTestGwt extends GWTTestCase {
 
-	private static final String MODULE_NAME = "me.fns.gwt.datehandling.client.Example";
+	private static final String MODULE_NAME = "me.fns.gwt.datehandling.Example";
 
 	/** Standard Time, in Central Time time zone **/
 	private static final String[] STD_TIMES = new String[] { "2012-12-25T01:00:00.000-06:00",
@@ -487,11 +487,13 @@ public class CSTimeUtilTestGwt extends GWTTestCase {
 	public void testYMDToDate() {
 		final DateTimeFormat isoFmt = DateTimeFormat.getFormat(PredefinedFormat.ISO_8601);
 
+		// test transition day -- daylight savings day at midnight
 		String ymdString = "2012-11-04";
 		Date actual = CSTimeUtil.YMDtoDate(ymdString);
 		Date expected = isoFmt.parse("2012-11-04T00:00:00.000-05:00");
 		Assert.assertEquals(expected, actual);
 
+		// test another transition day -- standard time at midnight
 		ymdString = "2013-03-10";
 		actual = CSTimeUtil.YMDtoDate(ymdString);
 		expected = isoFmt.parse("2013-03-10T00:00:00.000-05:00");
