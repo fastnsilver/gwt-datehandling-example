@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE module SYSTEM "http://google-web-toolkit.googlecode.com/svn/releases/2.4/distro-source/core/src/gwt-module.dtd">
+<module rename-to="Example">
+	<inherits name="me.fns.gwt.datehandling.Defaults"/>
+   
+    
+	<!-- Specify the app entry point class. -->
+	<entry-point class="me.fns.gwt.datehandling.client.Example" />
+
+	<!-- Specify the paths for translatable code -->
+	<!-- Ui and client-side GWT code -->
+    <source path="client" />
+    <source path="lib" />
+    <source path="shared" />
+    
+    <!-- Create permutations for supported locales -->
+    <extend-property name="locale" values="de"/>
+    <extend-property name="locale" values="en"/>
+    <extend-property name="locale" values="es"/>
+    <extend-property name="locale" values="fr"/>
+    <extend-property name="locale" values="zh_TW"/>
+    <set-property name="locale" value="en,de,fr,es,zh_TW"/>
+    
+    <!-- Default language (English) -->
+  	<set-property-fallback name="locale" value="en"/>
+
+    <!-- Use shorter obfuscated class names. -->
+	<set-configuration-property name="CssResource.obfuscationPrefix" value="empty" />
+
+</module>

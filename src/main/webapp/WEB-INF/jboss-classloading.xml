@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classloading xmlns="urn:jboss:classloading:1.0"
+    name="gwt-datehandling-example.war"
+    domain="gwt-datehandling-example-domain" 
+    parent-domain="DefaultDomain"
+    export-all="NON_EMPTY"
+    import-all="true"
+    parent-first="false"
+    excluded="org.apache.log4j,org.slf4j"
+    >
+    <!-- Forces the use of JBoss provided log4j and slf4j implementations -->
+</classloading>
+

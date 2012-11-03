@@ -1,24 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee 
-              http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
-         version="2.5"
-         xmlns="http://java.sun.com/xml/ns/javaee">
+<web-app version="2.5" xmlns="http://java.sun.com/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">    
+    
+    
+	<!-- 	Write client-side exceptions to server log, 
+	      	see http://www.summa-tech.com/blog/2012/06/11/7-tips-for-exception-handling-in-gwt/  -->
+	<servlet>
+		<servlet-name>remoteLogging</servlet-name>
+		<servlet-class>com.google.gwt.logging.server.RemoteLoggingServiceImpl</servlet-class>
+		<init-param>  
+  			<param-name>symbolMaps</param-name>  
+  			<param-value>gwt-datehandling-example/symbolMaps</param-value>  
+		</init-param>
+	</servlet>
+	
+	<servlet-mapping>
+		<servlet-name>remoteLogging</servlet-name>
+		<url-pattern>/gwt-datehandling-example/remote_logging</url-pattern>
+	</servlet-mapping> 
+    
+    <welcome-file-list>
+        <welcome-file>Application.html</welcome-file>
+    </welcome-file-list>
 
-  <!-- Servlets -->
-  <servlet>
-    <servlet-name>greetServlet</servlet-name>
-    <servlet-class>me.fns.gwt.datehandling.server.GreetingServiceImpl</servlet-class>
-  </servlet>
-  
-  <servlet-mapping>
-    <servlet-name>greetServlet</servlet-name>
-    <url-pattern>/example/greet</url-pattern>
-  </servlet-mapping>
-  
-  <!-- Default page to serve -->
-  <welcome-file-list>
-    <welcome-file>Example.html</welcome-file>
-  </welcome-file-list>
-
+    <session-config>
+        <session-timeout>0</session-timeout>
+    </session-config>
 </web-app>
