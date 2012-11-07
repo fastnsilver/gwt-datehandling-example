@@ -36,8 +36,6 @@ import com.google.gwt.i18n.shared.DateTimeFormat;
  * -- going from Daylight Savings to Standard Time).</li>
  * <li>Converting an ISO no-millis formatted String to a java.util.Date</li>
  * <li>Generating pre-defined hour labels for a java.util.Date</li>
- * <li>Converting a String in yyyy-MM-dd format to a day starting at midnight,
- * as a java.util.Date instance</li>
  * </ul>
  * .
  * </p>
@@ -60,6 +58,8 @@ public class CSTimeUtil {
 	// midnight (12:00AM) and 23 is 11:00PM
 	private static DateTimeFormat isoFormat = DateTimeFormat.getFormat("yyyy-MM-ddTHH:mm:ss.SZZZZ");
 
+	private static DateTimeFormat isoNoTzFormat = DateTimeFormat.getFormat("yyyy-MM-ddTHH:mm:ss.S");
+
 	private static DateTimeFormat dayFormat = DateTimeFormat.getFormat("dd");
 
 	private static DateTimeFormat monthFormat = DateTimeFormat.getFormat("MM");
@@ -69,8 +69,6 @@ public class CSTimeUtil {
 	private static DateTimeFormat paddedHourFormat = DateTimeFormat.getFormat("HH");
 
 	private static DateTimeFormat minuteFormat = DateTimeFormat.getFormat("mm");
-
-	private static DateTimeFormat ymdFormat = DateTimeFormat.getFormat("yyyy-MM-dd");
 
 	private static int[] daysInMonth = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
@@ -83,31 +81,23 @@ public class CSTimeUtil {
 	private static String[] longDayLabels = new String[] { "01", "02", "02*", "03", "04", "05", "06", "07", "08", "09",
 		"10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24" };
 
-	// Create a date based off a yyyy-MM-dd String
-	public static Date YMDtoDate(final String ymdString) {
-		// return ymdFormat.parse(ymdString);
-
-		// enhance yyyy-MM-dd to be ISO-8601 compliant
-		// calculated date (at midnight) needs to take into account Market time
-		final long MILLIS_IN_MINUTE = 60000;
-
-		final Date localDate = ymdFormat.parse(ymdString);
-
-		final long localOffset = localDate.getTimezoneOffset() * MILLIS_IN_MINUTE;
-		final long targetOffset = TZ.getOffset(localDate) * MILLIS_IN_MINUTE;
-
-		// Subtract the offset to make this into a UTC date.
-		final Date result = new Date(localDate.getTime() - localOffset + targetOffset);
-		return result;
-
-	}
 
 	public static Date isoNoMillisToDate(final String iso) {
 		Date result = null;
 		if (iso != null) {
 			final String part1 = iso.substring(0, 19);
-			final String part2 = iso.substring(19, 25);
-			result = isoFormat.parse(part1 + ".000" + part2);
+			final String part2 = iso.substring(19);
+			final StringBuffer buf = new StringBuffer();
+			// yyyy-MM-ddTHH:mm:ss
+			buf.append(part1);
+			// millis
+			buf.append(".000");
+			// coerce offset to be GMT +/-
+			if (!part2.contains("GMT")) {
+				buf.append("GMT");
+			}
+			buf.append(part2);
+			result = isoFormat.parse(buf.toString());
 		}
 		return result;
 	}
@@ -130,20 +120,6 @@ public class CSTimeUtil {
 			}
 		}
 		return hour;
-		/*
-		String result = null;
-		if (date != null) {
-			final Set<String> labels = labelsForDay(date);
-			final String[] labelsArr = labels.toArray(new String[labels.size()]);
-
-			final int hour = Integer.valueOf(paddedHourFormat.format(date, TZ));
-			final int index = (hour == 0 ? hoursInDay(date) : hour) - 1;
-
-			result = labelsArr[index];
-			System.out.println("Original Hour: " + date + ", (int) Hour: " + hour + ", (label) Hour: " + result);
-		}
-		return result;
-		 */
 	}
 
 	// FIXME not exactly what we need!
@@ -161,14 +137,15 @@ public class CSTimeUtil {
 	public static boolean isExtraHour(final Date date) {
 		boolean result = false;
 
-		final int year = Integer.valueOf(yearFormat.format(date));
-		final int month = Integer.valueOf(monthFormat.format(date));
-		final int day = Integer.valueOf(dayFormat.format(date));
-		final int hour = Integer.valueOf(paddedHourFormat.format(date));
+		final int year = Integer.valueOf(yearFormat.format(date, TZ));
+		final int month = Integer.valueOf(monthFormat.format(date, TZ));
+		final int day = Integer.valueOf(dayFormat.format(date, TZ));
+		final int hour = Integer.valueOf(paddedHourFormat.format(date, TZ));
+		final String tz = "GMT" + TZ.getISOTimeZoneString(date);
 
-		final Date twoHoursBefore = generateHour(year, month, day, hour, -2);
-		final Date oneHourBefore = generateHour(year, month, day, hour, -1);
-		final Date currentDate = generateHour(year, month, day, hour, 0);
+		final Date twoHoursBefore = generateHour(year, month, day, hour, tz, -2);
+		final Date oneHourBefore = generateHour(year, month, day, hour, tz, -1);
+		final Date currentDate = generateHour(year, month, day, hour, tz, 0);
 
 		if (TZ.isDaylightTime(twoHoursBefore) && !TZ.isDaylightTime(oneHourBefore) && !TZ.isDaylightTime(currentDate)) {
 			result = true;
@@ -179,7 +156,8 @@ public class CSTimeUtil {
 
 	// Determine an hour for a day/month/year using offset, offset can be a
 	// negative or positive number of hours
-	public static Date generateHour(final int year, final int month, final int day, final int hour, final int offset) {
+	public static Date generateHour(final int year, final int month, final int day, final int hour, final String tz,
+			final int offset) {
 
 		// This algorithm is limited... offset value must therefore be between
 		// -/+ 24 hours
@@ -254,10 +232,32 @@ public class CSTimeUtil {
 
 		final StringBuffer buf = new StringBuffer();
 		buf.append(newYear).append("-").append(newMonth).append("-").append(newDay);
-		final String ymd = buf.toString();
-		buf.append("T").append(newHour).append(":00:00.000GMT").append(TZ.getISOTimeZoneString(YMDtoDate(ymd)));
+		buf.append("T").append(newHour).append(":00:00.000").append(tz);
 		final Date newDate = isoFormat.parse(buf.toString());
 		return newDate;
+	}
+
+	private static Date calculateTomorrow(final Date currentDay) {
+		Date tomorrow = null;
+		if (currentDay != null) {
+			final int year = Integer.valueOf(yearFormat.format(currentDay, TZ));
+			final int month = Integer.valueOf(monthFormat.format(currentDay, TZ));
+			final int day = Integer.valueOf(dayFormat.format(currentDay, TZ));
+			tomorrow = generateDay(year, month, day, 1);
+		}
+		return tomorrow;
+	}
+
+	private static String tomorrowAsYMDString(final Date tomorrow) {
+		final StringBuffer result = new StringBuffer();
+		if (tomorrow != null) {
+			result.append(yearFormat.format(tomorrow, TZ));
+			result.append("-");
+			result.append(monthFormat.format(tomorrow, TZ));
+			result.append("-");
+			result.append(dayFormat.format(tomorrow, TZ));
+		}
+		return result.toString();
 	}
 
 	// Determine another day for a year, month day combo using an offset, where
@@ -311,20 +311,18 @@ public class CSTimeUtil {
 
 		final StringBuffer buf = new StringBuffer();
 		buf.append(newYear).append("-").append(newMonth).append("-").append(newDay);
-		final String ymd = buf.toString();
-		buf.append("T").append("00:00:00.000GMT").append(TZ.getISOTimeZoneString(YMDtoDate(ymd)));
-		final Date newDate = isoFormat.parse(buf.toString());
+		buf.append("T").append("00:00:00.000");
+		final Date newDate = isoNoTzFormat.parse(buf.toString());
 		return newDate;
 	}
-
 
 	// Determine whether 23,24, or 25 hour day.
 	public static int hoursInDay(final Date date) {
 		int result = -1;
 		if (date != null) {
-			final int year = Integer.valueOf(yearFormat.format(date));
-			final int month = Integer.valueOf(monthFormat.format(date));
-			final int day = Integer.valueOf(dayFormat.format(date));
+			final int year = Integer.valueOf(yearFormat.format(date, TZ));
+			final int month = Integer.valueOf(monthFormat.format(date, TZ));
+			final int day = Integer.valueOf(dayFormat.format(date, TZ));
 
 			// make sure that current day starts at midnight for whatever hour
 			// was passed in
@@ -352,16 +350,17 @@ public class CSTimeUtil {
 		return result;
 	}
 
-	public static String calculateIsoNoMillisHour(final String ymd, final String hourAsString) {
-		final int hoursInDay = hoursInDay(YMDtoDate(ymd));
-		final StringBuffer isoHour = new StringBuffer();
-		isoHour.append(ymd);
+	public static String calculateIsoNoMillisHour(final String dayAtMidnight, final String hourAsString) {
+		final Date midnight = isoNoMillisToDate(dayAtMidnight);
+		final int hoursInDay = hoursInDay(midnight);
+		StringBuffer isoHour = new StringBuffer();
+		isoHour.append(dayAtMidnight.substring(0, 10));
 		isoHour.append("T");
 		String hourPart;
 
 		int hour = 1;
 
-		String tz = TZ.getISOTimeZoneString(YMDtoDate(ymd));
+		String tz = TZ.getISOTimeZoneString(midnight);
 		boolean fiddleTzOffset = false;
 		int offset = 0;
 		if (hourAsString.contains("*")) {
@@ -376,6 +375,12 @@ public class CSTimeUtil {
 			hour = Integer.valueOf(hourAsString);
 			if (hour == 24) {
 				hour = 0;
+				final Date tomorrow = calculateTomorrow(midnight);
+				final String tomorrowAsString = tomorrowAsYMDString(tomorrow);
+				isoHour = new StringBuffer();
+				isoHour.append(tomorrowAsString);
+				isoHour.append("T");
+				tz = TZ.getISOTimeZoneString(tomorrow);
 			}
 			if (hoursInDay == 25 && hour > 2) {
 				fiddleTzOffset = true;
@@ -411,9 +416,9 @@ public class CSTimeUtil {
 		return isoHour.toString();
 	}
 
-	public static String calculateIsoNoMillisInterval(final String ymd, final String hour, final int minuteInterval) {
+	public static String calculateIsoNoMillisInterval(final String dayAtMidnight, final String hour, final int minuteInterval) {
 		final StringBuffer isoInterval = new StringBuffer();
-		isoInterval.append(ymd);
+		isoInterval.append(dayAtMidnight.substring(0, 10));
 		isoInterval.append("T");
 		isoInterval.append(hour);
 		isoInterval.append(":");
@@ -424,7 +429,8 @@ public class CSTimeUtil {
 			minutesSecondsPart = String.valueOf(minuteInterval) + ":00";
 		}
 		isoInterval.append(minutesSecondsPart);
-		isoInterval.append(TZ.getISOTimeZoneString(YMDtoDate(ymd)));
+		final String tz = TZ.getISOTimeZoneString(isoNoMillisToDate(dayAtMidnight));
+		isoInterval.append(tz);
 		return isoInterval.toString();
 	}
 
