@@ -2,8 +2,7 @@ INTRODUCTION
 
 This project is meant to demonstrate a client-side date handling utility for use with GWT.
 
-As of 2012-11-03, it is not 100% functional.  The reason being... it does not handle "transition days",
-those days that fall within time zones that respect Daylight Savings.
+As of 2012-11-07, this project is now 100% functional.  The reason being... it properly handles "transition days", those days that fall within time zones that respect Daylight Savings.
 
 
 
@@ -16,23 +15,20 @@ Reading I've done on the subject
 	* http://stackoverflow.com/questions/10041811/how-can-i-shift-timezone-of-date-object-created-in-local-timezone-to-target-time?rq=1
 	* http://stackoverflow.com/questions/2189148/how-do-i-get-gwt-datetimeformat-to-display-using-the-server-timezone-rather-tha?rq=1
 	
+And the question I asked 
 
+	* http://stackoverflow.com/questions/13214624/gwt-date-handing-have-client-respect-servers-timezone
+	
+	
 
 PURPOSE
 
-I would like to get some help from the community to improve the current implementation so that it allows
-for working with dates (days, hours, minute interval labels tied to an ISO-8601 String formatted instant) 
-in whichever time zone the client accesses this application.  
+I had required some help from the community to improve the current implementation so that it allowed for working with dates (days, hours, minute interval labels tied to an ISO-8601 String formatted instant) 
+in whichever time zone the client accesses this application.
 
-The constraint is that each ISO-8601 String instant will be fed to the client with a pre-defined timezone offset.
-E.g., Imagine a case where "market time" is accepted as US Central Time (i.e., GMT-05:00 while Daylight Savings
-is in effect or GMT-06:00 while Standard Time is in effect). And anywhere the client accesses the application
-all instants are to be displayed in this "market time."
+The constraint is that each ISO-8601 String instant will be fed to the client with a pre-defined timezone offset.  E.g., Imagine a case where "market time" is accepted as US Central Time (i.e., GMT-05:00 while Daylight Savings is in effect or GMT-06:00 while Standard Time is in effect). And anywhere the client accesses the application all instants are to be displayed in this "market time."  The utility class, CSTimeUtil.java, is documented.  It's corresponding GWTTestCase is CSTimeUtilTestGwt.java.
 
-The utility class, CSTimeUtil.java, is documented.  It's corresponding GWTTestCase is CSTimeUtilTestGwt.java.
-
-If you're curious, please download the source, attempt to build the project as described below.  Examine the
-results  You may also want to examine my test setup and assertions to see that they are reasonable.
+If you're curious, please download the source.
 
 Thanks in advance for your time and consideration!
 
@@ -78,16 +74,17 @@ To run this webapp, on
 
     JETTY 8  (LOCALHOST)
     
-    mvn clean install -Pdefault -Plocal jetty:run-war           		(to start the container)
-    press Ctrl+C                         								(to stop the container)
+    mvn clean install -Pdefault -Plocal jetty:run-war           		
+    press Ctrl+C                         								
     
-    visit http://localhost:8080    (if -Djetty.port=9090 set in MAVEN_OPTS, then change port to 9090)
+    visit http://localhost:8080    
+    (if -Djetty.port=9090 set in MAVEN_OPTS, then change port to 9090)
     
 
     TOMCAT 6 (LOCALHOST)
 
-    mvn clean install -Pdefault -Plocal -Ptomcat6x-local cargo:start    (to start the container)
-    press Ctrl+C                         								(to stop the container)
+    mvn clean install -Pdefault -Plocal -Ptomcat6x-local cargo:start    
+    press Ctrl+C                         								
     
     visit http://localhost:8081/gwt-datehandling-example
     logs to be found in /target/tomcat6x directory
@@ -95,8 +92,8 @@ To run this webapp, on
     
     TOMCAT 7 (LOCALHOST)
 
-    mvn clean install -Pdefault -Plocal -Ptomcat7x-local cargo:start    (to start the container)
-    press Ctrl+C                         								(to stop the container)
+    mvn clean install -Pdefault -Plocal -Ptomcat7x-local cargo:start    
+    press Ctrl+C                         								
     
     visit http://localhost:8081/gwt-datehandling-example
     logs to be found in /target/tomcat7x directory
@@ -104,9 +101,13 @@ To run this webapp, on
     
     JBOSS 5.1.2 (LOCALHOST)
 
-    mvn clean install -Pdefault -Plocal -Pjboss51x-local cargo:start -Djboss51x.home=/path/to/jboss     (to start the container)
-			(e.g., on Windows,  mvn clean install -Pdefault -Plocal -Pjboss51x-local cargo:start -Djboss51x.home="D:\development\servers\jboss-5.1.0.GA")
-    press Ctrl+C                                                     									(to stop the container)
+    mvn clean install -Pdefault -Plocal -Pjboss51x-local cargo:start 
+    	-Djboss51x.home=/path/to/jboss     
+		
+		(e.g., on Windows,  
+			mvn clean install -Pdefault -Plocal -Pjboss51x-local cargo:start 
+			-Djboss51x.home="D:\development\servers\jboss-5.1.0.GA")
+    press Ctrl+C                                                     									
          
     visit http://localhost:8081/gwt-datehandling-example
     logs to be found in /target/jboss51x directory
@@ -114,9 +115,13 @@ To run this webapp, on
 
 	JBOSS 7.1.x or 6 EAP (LOCALHOST)
 
-    mvn clean install -Pdefault -Plocal -Pjboss71x-local cargo:start -Djboss71x.home=/path/to/jboss      (to start the container)
-    		(e.g., on Windows,  mvn clean install -Pdefault -Plocal -Pjboss71x-local cargo:start -Djboss71x.home="D:\development\servers\jboss-as-7.1.1.Final")
-    press Ctrl+C                                                     									 (to stop the container)
+    mvn clean install -Pdefault -Plocal -Pjboss71x-local cargo:start 
+    	-Djboss71x.home=/path/to/jboss      (to start the container)
+    		
+    	(e.g., on Windows,  
+    		mvn clean install -Pdefault -Plocal -Pjboss71x-local cargo:start 
+    		-Djboss71x.home="D:\development\servers\jboss-as-7.1.1.Final")
+    press Ctrl+C                                                     									 
         
     /path/to/jboss is the directory where you've installed JBOSS 7.1.x on your workstation/laptop
          

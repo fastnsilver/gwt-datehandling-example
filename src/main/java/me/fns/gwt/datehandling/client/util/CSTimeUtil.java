@@ -10,6 +10,7 @@ import com.google.gwt.core.client.GWT;
 import com.google.gwt.i18n.client.TimeZone;
 import com.google.gwt.i18n.client.constants.TimeZoneConstants;
 import com.google.gwt.i18n.shared.DateTimeFormat;
+import com.google.gwt.user.datepicker.client.CalendarUtil;
 
 
 /**
@@ -49,39 +50,89 @@ import com.google.gwt.i18n.shared.DateTimeFormat;
  */
 public class CSTimeUtil {
 
+	/**
+	 * Instantiates an instance of TimeZoneContants via deferred binding
+	 * mechanism.
+	 */
 	private static final TimeZoneConstants TZ_CONSTANTS_INSTANCE = GWT.create(TimeZoneConstants.class);
 
-	// Caution: client's time zone is coerced to be whatever is specified here
+	/**
+	 * TimeZone instance used to coerce browser client time zone to be
+	 * "Market time".
+	 */
 	private static final TimeZone TZ = TimeZone.createTimeZone(TZ_CONSTANTS_INSTANCE.americaChicago());
 
-	// yyyy-MM-ddTHH:mm:ss.SZZZZ, where hours are represented 0-23, where 0 is
-	// midnight (12:00AM) and 23 is 11:00PM
+	/**
+	 * ISO8601 formatter yyyy-MM-ddTHH:mm:ss.SZZZZ, where hours are represented
+	 * 0-23, where 0 is midnight (12:00AM) and 23 is 11:00PM
+	 */
 	private static DateTimeFormat isoFormat = DateTimeFormat.getFormat("yyyy-MM-ddTHH:mm:ss.SZZZZ");
 
-	private static DateTimeFormat isoNoTzFormat = DateTimeFormat.getFormat("yyyy-MM-ddTHH:mm:ss.S");
-
+	/**
+	 * Day formatter (day of month, where first day of month is 1)
+	 */
 	private static DateTimeFormat dayFormat = DateTimeFormat.getFormat("dd");
 
+	/**
+	 * Month formatter (where 1 = January and 12 = December)
+	 */
 	private static DateTimeFormat monthFormat = DateTimeFormat.getFormat("MM");
 
+	/**
+	 * Year format (4-digit representation)
+	 */
 	private static DateTimeFormat yearFormat = DateTimeFormat.getFormat("yyyy");
 
+	/**
+	 * Padded hour format (first hour of day is 0, last hour of day is 23)
+	 */
 	private static DateTimeFormat paddedHourFormat = DateTimeFormat.getFormat("HH");
 
+	/**
+	 * Padded minute format (ranged from 00-59)
+	 */
 	private static DateTimeFormat minuteFormat = DateTimeFormat.getFormat("mm");
 
+	/**
+	 * The number of days in each month of the year.
+	 */
 	private static int[] daysInMonth = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
+	/**
+	 * Hour labels for a 24 hour day, regardless of Daylight Savings or Standard
+	 * Time time zone offset. Hour 1 is 1:00AM, Hour 24 is 12:00AM of the
+	 * following day.
+	 */
 	private static String[] normalDayLabels = new String[] { "01", "02", "03", "04", "05", "06", "07", "08", "09",
 		"10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24" };
 
+	/**
+	 * Hour labels for 23 hour day, where day is a "transition day" from
+	 * Standard Time to Daylight Savings. Hour 1 is 1:00AM, Hour 23 is 12:00AM
+	 * of the following day. 2:00AM is skipped.
+	 */
 	private static String[] shortDayLabels = new String[] { "01", "03", "04", "05", "06", "07", "08", "09", "10", "11",
 		"12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24" };
 
+	/**
+	 * Hour labels for 25 hour day, where day is a "transition day" from
+	 * Daylight Savings to Standard Time. Hour 1 is 1:00AM, Hour 25 is 12:00AM
+	 * of the following day. 2:00AM is repeated.
+	 */
 	private static String[] longDayLabels = new String[] { "01", "02", "02*", "03", "04", "05", "06", "07", "08", "09",
 		"10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24" };
 
 
+	/**
+	 * Calculates a java.util.Date from an ISO8601 formatted String (with no
+	 * millis) If the String does not contain a "GMT" prefix for the time zone
+	 * offset hours it is added to the String before being parsed by
+	 * <code>isoFormat</code>.
+	 * 
+	 * @param iso
+	 *            an IS601 formatted String
+	 * @return a java.util.Date
+	 */
 	public static Date isoNoMillisToDate(final String iso) {
 		Date result = null;
 		if (iso != null) {
@@ -102,17 +153,30 @@ public class CSTimeUtil {
 		return result;
 	}
 
-	public static String dateToHour(final Date date) {
+	/**
+	 * Determines the hour label corresponding to a java.util.Date
+	 * 
+	 * @param date
+	 *            a java.util.Date (typically a whole hour)
+	 * @return an hour label where 01 represents 1:00AM and 24 represents
+	 *         12:00AM of the following day
+	 */
+	public static String dateToHourLabel(final Date date) {
 		String hour = null;
 		if (date != null) {
 			hour = paddedHourFormat.format(date, TZ);
+			final String tz = determineTimezoneOffset(date, 0);
 			if (hour != null) {
 				// midnight is the 24th hour!
 				if (hour.equals("00")) {
 					hour = "24";
 				}
-				if (hoursInDay(date) == 25 && hour.equals("01") && !TZ.isDaylightTime(date)) {
-					hour = "02";
+				if (hour.equals("01")) {
+					final Date piorHourAsDate = generateHour(date, -1);
+					final String priorTz = determineTimezoneOffset(piorHourAsDate, 0);
+					if (!tz.equals(priorTz)) {
+						hour = "02";
+					}
 				}
 				if (isExtraHour(date)) {
 					hour = "02*";
@@ -122,30 +186,37 @@ public class CSTimeUtil {
 		return hour;
 	}
 
-	// FIXME not exactly what we need!
-	public static String dateToMinute(final Date date) {
+	/**
+	 * Determines the minute label corresponding to a java.util.Date
+	 * 
+	 * @param date
+	 *            a java.util.Date (with minutes)
+	 * @return a minute interval label where 01 represents the 5th minute and 12
+	 *         represents the 0th minute of the following day
+	 */
+	public static String dateToMinuteLabel(final Date date) {
 		String minute = null;
 		if (date != null) {
+			// FIXME not exactly what we need!
 			minute = minuteFormat.format(date, TZ);
 		}
 		return minute;
 	}
 
 
-	// determine whether current hour is an extra hour when transitioning from
-	// Daylight Savings to Standard Time
+	/**
+	 * Determines whether current hour is an "extra hour" when transitioning
+	 * from Daylight Savings to Standard Time
+	 * 
+	 * @param date
+	 *            a java.util.Date
+	 * @return true if the date is a "transition day"; false otherwise
+	 */
 	public static boolean isExtraHour(final Date date) {
 		boolean result = false;
-
-		final int year = Integer.valueOf(yearFormat.format(date, TZ));
-		final int month = Integer.valueOf(monthFormat.format(date, TZ));
-		final int day = Integer.valueOf(dayFormat.format(date, TZ));
-		final int hour = Integer.valueOf(paddedHourFormat.format(date, TZ));
-		final String tz = "GMT" + TZ.getISOTimeZoneString(date);
-
-		final Date twoHoursBefore = generateHour(year, month, day, hour, tz, -2);
-		final Date oneHourBefore = generateHour(year, month, day, hour, tz, -1);
-		final Date currentDate = generateHour(year, month, day, hour, tz, 0);
+		final Date twoHoursBefore = generateHour(date, -2);
+		final Date oneHourBefore = generateHour(date, -1);
+		final Date currentDate = generateHour(date, 0);
 
 		if (TZ.isDaylightTime(twoHoursBefore) && !TZ.isDaylightTime(oneHourBefore) && !TZ.isDaylightTime(currentDate)) {
 			result = true;
@@ -154,10 +225,25 @@ public class CSTimeUtil {
 		return result;
 	}
 
-	// Determine an hour for a day/month/year using offset, offset can be a
-	// negative or positive number of hours
-	public static Date generateHour(final int year, final int month, final int day, final int hour, final String tz,
-			final int offset) {
+	/**
+	 * Determine an hour for a day/month/year using offset, offset can be a
+	 * negative or positive number of hours
+	 * 
+	 * @param date
+	 *            a java.util.Date
+	 * @param offset
+	 *            a positive of negative number of hours to increment or
+	 *            decrement the date by respectively
+	 * @return a java.util.Date that is the result of adding or subtracting
+	 *         offset from date
+	 */
+	public static Date generateHour(final Date date, final int offset) {
+
+		final int year = Integer.valueOf(yearFormat.format(date, TZ));
+		final int month = Integer.valueOf(monthFormat.format(date, TZ));
+		final int day = Integer.valueOf(dayFormat.format(date, TZ));
+		final int hour = Integer.valueOf(paddedHourFormat.format(date, TZ));
+		String tz = null;
 
 		// This algorithm is limited... offset value must therefore be between
 		// -/+ 24 hours
@@ -174,6 +260,7 @@ public class CSTimeUtil {
 		int newHour = hour + offset;
 		// yesterday
 		if (newHour <= 0) {
+			tz = determineTimezoneOffset(date, -1);
 			newHour = 24 + newHour;
 			newDay--;
 			if (newDay == 0) {
@@ -193,6 +280,7 @@ public class CSTimeUtil {
 		} else
 			// same day
 			if (newHour >= 0 && newHour <= 23) {
+				tz = determineTimezoneOffset(date, 0);
 				int numDays = daysInMonth[month - 1];
 				// Adjust for leap year
 				if (month == 2) {
@@ -211,6 +299,7 @@ public class CSTimeUtil {
 			} else
 				// tomorrow
 				if (newHour > 23) {
+					tz = determineTimezoneOffset(date, 1);
 					newHour = 0 + offset - 1;
 					newDay++;
 					int numDays = daysInMonth[month - 1];
@@ -237,15 +326,24 @@ public class CSTimeUtil {
 		return newDate;
 	}
 
-	private static Date calculateTomorrow(final Date currentDay) {
-		Date tomorrow = null;
-		if (currentDay != null) {
-			final int year = Integer.valueOf(yearFormat.format(currentDay, TZ));
-			final int month = Integer.valueOf(monthFormat.format(currentDay, TZ));
-			final int day = Integer.valueOf(dayFormat.format(currentDay, TZ));
-			tomorrow = generateDay(year, month, day, 1);
+	private static String determineTimezoneOffset(final Date date, final int days) {
+		return determineTimezoneOffset(date, days, true);
+	}
+
+	@SuppressWarnings("deprecation")
+	private static String determineTimezoneOffset(final Date date, final int days, final boolean addOffsetFromGMT) {
+		String isoTz = null;
+		if (date != null) {
+			final Date copy = CalendarUtil.copyDate(date);
+			copy.setDate(copy.getDate() + days);
+			final StringBuffer buf = new StringBuffer();
+			if (addOffsetFromGMT) {
+				buf.append("GMT");
+			}
+			buf.append(TZ.getISOTimeZoneString(copy));
+			isoTz = buf.toString();
 		}
-		return tomorrow;
+		return isoTz;
 	}
 
 	private static String tomorrowAsYMDString(final Date tomorrow) {
@@ -260,9 +358,24 @@ public class CSTimeUtil {
 		return result.toString();
 	}
 
-	// Determine another day for a year, month day combo using an offset, where
-	// offset can be a negative or positive number of days
-	public static Date generateDay(final int year, final int month, final int day, final int offset) {
+	/**
+	 * Determine another day for a year, month day combo using an offset, where
+	 * offset can be a negative or positive number of days
+	 * 
+	 * @param date
+	 *            a java.util.Date
+	 * @param offset
+	 *            a positive of negative number of days to increment or
+	 *            decrement the date by respectively
+	 * @return a java.util.Date that is the result of adding or subtracting
+	 *         offset from date
+	 */
+	public static Date generateDay(final Date date, final int offset) {
+
+		final int year = Integer.valueOf(yearFormat.format(date, TZ));
+		final int month = Integer.valueOf(monthFormat.format(date, TZ));
+		final int day = Integer.valueOf(dayFormat.format(date, TZ));
+		final String tz = determineTimezoneOffset(date, offset);
 
 		// This algorithm is limited... offset value must therefore be between
 		// -/+ 20 days
@@ -311,23 +424,25 @@ public class CSTimeUtil {
 
 		final StringBuffer buf = new StringBuffer();
 		buf.append(newYear).append("-").append(newMonth).append("-").append(newDay);
-		buf.append("T").append("00:00:00.000");
-		final Date newDate = isoNoTzFormat.parse(buf.toString());
+		buf.append("T").append("00:00:00.000").append(tz);
+		final Date newDate = isoFormat.parse(buf.toString());
 		return newDate;
 	}
 
-	// Determine whether 23,24, or 25 hour day.
+	/**
+	 * Determine whether date is a 23, 24, or 25 hour day.
+	 * 
+	 * @param date
+	 *            a java.util.Date
+	 * @return 23 if date is transition from Standard Time to Daylight Savings,
+	 *         24 if either a regular Standard Time or Daylight Savings date, or
+	 *         25 if date is a transition from Daylight Savings to Standard Time
+	 */
 	public static int hoursInDay(final Date date) {
 		int result = -1;
 		if (date != null) {
-			final int year = Integer.valueOf(yearFormat.format(date, TZ));
-			final int month = Integer.valueOf(monthFormat.format(date, TZ));
-			final int day = Integer.valueOf(dayFormat.format(date, TZ));
-
-			// make sure that current day starts at midnight for whatever hour
-			// was passed in
-			final Date currentDate = generateDay(year, month, day, 0);
-			final Date nextDate = generateDay(year, month, day, 1);
+			final Date currentDate = generateDay(date, 0);
+			final Date nextDate = generateDay(date, 1);
 
 			final Long hoursBetween = (nextDate.getTime() - currentDate.getTime()) / (60 * 60 * 1000);
 
@@ -350,6 +465,16 @@ public class CSTimeUtil {
 		return result;
 	}
 
+	/**
+	 * Calculates the equivalent ISO8601 formatted String (no millis) for the
+	 * day (at midnight) and the hour label
+	 * 
+	 * @param dayAtMidnight
+	 *            an ISO8601 formatted String (no millis) at midnight
+	 * @param hourAsString
+	 *            an hour label
+	 * @return an ISO8601 formatted String (no millis) representing the hour
+	 */
 	public static String calculateIsoNoMillisHour(final String dayAtMidnight, final String hourAsString) {
 		final Date midnight = isoNoMillisToDate(dayAtMidnight);
 		final int hoursInDay = hoursInDay(midnight);
@@ -360,7 +485,7 @@ public class CSTimeUtil {
 
 		int hour = 1;
 
-		String tz = TZ.getISOTimeZoneString(midnight);
+		String tz = determineTimezoneOffset(midnight, 0, false);
 		boolean fiddleTzOffset = false;
 		int offset = 0;
 		if (hourAsString.contains("*")) {
@@ -375,12 +500,12 @@ public class CSTimeUtil {
 			hour = Integer.valueOf(hourAsString);
 			if (hour == 24) {
 				hour = 0;
-				final Date tomorrow = calculateTomorrow(midnight);
+				final Date tomorrow = generateDay(midnight, 1);
 				final String tomorrowAsString = tomorrowAsYMDString(tomorrow);
 				isoHour = new StringBuffer();
 				isoHour.append(tomorrowAsString);
 				isoHour.append("T");
-				tz = TZ.getISOTimeZoneString(tomorrow);
+				tz = determineTimezoneOffset(tomorrow, 0, false);
 			}
 			if (hoursInDay == 25 && hour > 2) {
 				fiddleTzOffset = true;
@@ -416,6 +541,16 @@ public class CSTimeUtil {
 		return isoHour.toString();
 	}
 
+	/**
+	 * Calculates the equivalent ISO8601 formatted String (no millis) for the
+	 * day (at midnight), the hour and the minute interval
+	 * 
+	 * @param dayAtMidnight
+	 *            an ISO8601 formatted String (no millis) at midnight
+	 * @param hour
+	 *            an hour (00-23)
+	 * @return an ISO8601 formatted String (no millis) representing the minute
+	 */
 	public static String calculateIsoNoMillisInterval(final String dayAtMidnight, final String hour, final int minuteInterval) {
 		final StringBuffer isoInterval = new StringBuffer();
 		isoInterval.append(dayAtMidnight.substring(0, 10));
@@ -434,23 +569,37 @@ public class CSTimeUtil {
 		return isoInterval.toString();
 	}
 
-	public static String convertIsoNoMillisToHour(final String isoDateTime) {
+	/**
+	 * Converts an ISO8601 formatted String (no millis) into an hour label
+	 * 
+	 * @param isoDateTime
+	 *            an ISO8601 String (no millis)
+	 * @return an hour label
+	 */
+	public static String convertIsoNoMillisToHourLabel(final String isoDateTime) {
 		String result = "";
 		if (isoDateTime != null && !isoDateTime.isEmpty()) {
 			final Date dateTime = CSTimeUtil.isoNoMillisToDate(isoDateTime);
 			if (dateTime != null) {
-				result = CSTimeUtil.dateToHour(dateTime);
+				result = CSTimeUtil.dateToHourLabel(dateTime);
 			}
 		}
 		return result;
 	}
 
-	public static String convertIsoNoMillisToMinute(final String isoDateTime) {
+	/**
+	 * Converts an ISO8601 formatted String (no millis) into a minute label
+	 * 
+	 * @param isoDateTime
+	 *            an ISO8601 String (no millis)
+	 * @return a minute label
+	 */
+	public static String convertIsoNoMillisToMinuteLabel(final String isoDateTime) {
 		String result = "";
 		if (isoDateTime != null && !isoDateTime.isEmpty()) {
 			final Date dateTime = CSTimeUtil.isoNoMillisToDate(isoDateTime);
 			if (dateTime != null) {
-				result = CSTimeUtil.dateToMinute(dateTime);
+				result = CSTimeUtil.dateToMinuteLabel(dateTime);
 			}
 		}
 		return result;

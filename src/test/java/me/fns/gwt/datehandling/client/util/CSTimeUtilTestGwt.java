@@ -10,6 +10,7 @@ import org.junit.Test;
 import com.google.gwt.i18n.shared.DateTimeFormat;
 import com.google.gwt.junit.client.GWTTestCase;
 
+
 /**
  * <p>
  * Client-side tests for date manipulation.
@@ -164,28 +165,28 @@ public class CSTimeUtilTestGwt extends GWTTestCase {
 	}
 
 	@Test
-	public void testDateToMinute() {
+	public void testDateToMinuteLabel() {
 		final DateTimeFormat isoFmt = DateTimeFormat.getFormat(ISO_8601_FORMAT);
 
-		String actual = CSTimeUtil.dateToMinute(null);
+		String actual = CSTimeUtil.dateToMinuteLabel(null);
 		Assert.assertNull(actual);
 
 		final String dateAsString1 = "2012-04-11T01:15:00.000GMT-05:00";
 		final String expected1 = "15";
-		actual = CSTimeUtil.dateToMinute(isoFmt.parse(dateAsString1));
+		actual = CSTimeUtil.dateToMinuteLabel(isoFmt.parse(dateAsString1));
 		Assert.assertEquals(expected1, actual);
 
 		final String dateAsString2 = "2013-02-15T16:30:00.000GMT-06:00";
 		final String expected2 = "30";
-		actual = CSTimeUtil.dateToMinute(isoFmt.parse(dateAsString2));
+		actual = CSTimeUtil.dateToMinuteLabel(isoFmt.parse(dateAsString2));
 		Assert.assertEquals(expected2, actual);
 	}
 
 	@Test
-	public void testDateToHour() {
+	public void testDateToHourLabel() {
 		// null case
 		Date date = null;
-		String actual = CSTimeUtil.dateToHour(date);
+		String actual = CSTimeUtil.dateToHourLabel(date);
 		Assert.assertNull(actual);
 
 		final DateTimeFormat isoFmt = DateTimeFormat.getFormat(ISO_8601_FORMAT);
@@ -197,7 +198,7 @@ public class CSTimeUtilTestGwt extends GWTTestCase {
 		for (int i = 0; i < 24; i++) {
 			dateAsString = STD_TIMES[i];
 			date = isoFmt.parse(dateAsString);
-			actual = CSTimeUtil.dateToHour(date);
+			actual = CSTimeUtil.dateToHourLabel(date);
 			expected = normalDayLabels[i];
 			Assert.assertEquals(expected, actual);
 		}
@@ -207,7 +208,7 @@ public class CSTimeUtilTestGwt extends GWTTestCase {
 		for (int i = 0; i < 25; i++) {
 			dateAsString = DST_TO_STD_TIMES[i];
 			date = isoFmt.parse(dateAsString);
-			actual = CSTimeUtil.dateToHour(date);
+			actual = CSTimeUtil.dateToHourLabel(date);
 			expected = longDayLabels[i];
 			Assert.assertEquals(expected, actual);
 		}
@@ -217,7 +218,7 @@ public class CSTimeUtilTestGwt extends GWTTestCase {
 		for (int i = 0; i < 23; i++) {
 			dateAsString = STD_TO_DST_TIMES[i];
 			date = isoFmt.parse(dateAsString);
-			actual = CSTimeUtil.dateToHour(date);
+			actual = CSTimeUtil.dateToHourLabel(date);
 			expected = shortDayLabels[i];
 			Assert.assertEquals(expected, actual);
 		}
@@ -256,83 +257,113 @@ public class CSTimeUtilTestGwt extends GWTTestCase {
 		final DateTimeFormat isoFmt = DateTimeFormat.getFormat(ISO_8601_FORMAT);
 
 		// January 31, 2012 11:00PM, offset +2 hours
-		Date actual = CSTimeUtil.generateHour(2012, 1, 31, 23, "GMT-06:00", 2);
+		String src = "2012-01-31T23:00:00.000GMT-06:00";
+		Date srcAsDate = isoFmt.parse(src);
+		Date actual = CSTimeUtil.generateHour(srcAsDate, 2);
 		Date expected = isoFmt.parse("2012-02-01T01:00:00.000GMT-06:00");
 		Assert.assertEquals(expected, actual);
 
 		// January 31, 2012 midnight, offset -2 hours
-		actual = CSTimeUtil.generateHour(2012, 1, 31, 0, "GMT-06:00", -2);
+		src = "2012-01-31T00:00:00.000GMT-06:00";
+		srcAsDate = isoFmt.parse(src);
+		actual = CSTimeUtil.generateHour(srcAsDate, -2);
 		expected = isoFmt.parse("2012-01-30T22:00:00.000GMT-06:00");
 		Assert.assertEquals(expected, actual);
 
 		// December 31, 2011 11:00PM, offset +3 hours
-		actual = CSTimeUtil.generateHour(2012, 12, 31, 23, "GMT-06:00", 3);
+		src = "2012-12-31T23:00:00.000GMT-06:00";
+		srcAsDate = isoFmt.parse(src);
+		actual = CSTimeUtil.generateHour(srcAsDate, 3);
 		expected = isoFmt.parse("2013-01-01T02:00:00.000GMT-06:00");
 		Assert.assertEquals(expected, actual);
 
 		// January 1, 2012 3:00am, offset -5 hours
-		actual = CSTimeUtil.generateHour(2012, 1, 1, 3, "GMT-06:00", -5);
+		src = "2012-01-01T03:00:00.000GMT-06:00";
+		srcAsDate = isoFmt.parse(src);
+		actual = CSTimeUtil.generateHour(srcAsDate, -5);
 		expected = isoFmt.parse("2011-12-31T22:00:00.000GMT-06:00");
 		Assert.assertEquals(expected, actual);
 
 		// November 3, 2011 2:00am, offset + 6 hours
-		actual = CSTimeUtil.generateHour(2011, 11, 3, 2, "GMT-05:00", 6);
+		src = "2011-11-03T02:00:00.000GMT-05:00";
+		srcAsDate = isoFmt.parse(src);
+		actual = CSTimeUtil.generateHour(srcAsDate, 6);
 		expected = isoFmt.parse("2011-11-03T08:00:00.000GMT-05:00");
 		Assert.assertEquals(expected, actual);
 
 		// November 4, 2012 1:00am, offset + 1 hour
-		actual = CSTimeUtil.generateHour(2012, 11, 4, 1, "GMT-05:00", 1);
+		src = "2012-11-04T01:00:00.000GMT-05:00";
+		srcAsDate = isoFmt.parse(src);
+		actual = CSTimeUtil.generateHour(srcAsDate, 1);
 		expected = isoFmt.parse("2012-11-04T01:00:00.000GMT-06:00");
 		Assert.assertEquals(expected, actual);
 	}
 
 	@Test
 	public void testGenerateDay() {
-		final DateTimeFormat isoNoTzFormat = DateTimeFormat.getFormat("yyyy-MM-ddTHH:mm:ss.S");
+		final DateTimeFormat isoFmt = DateTimeFormat.getFormat(ISO_8601_FORMAT);
 
 		// January 31, 2012 midnight, offset +3 days
-		Date actual = CSTimeUtil.generateDay(2012, 1, 31, 3);
-		Date expected = isoNoTzFormat.parse("2012-02-03T00:00:00.000");
+		String src = "2012-01-31T00:00:00.000GMT-06:00";
+		Date srcAsDate = isoFmt.parse(src);
+		Date actual = CSTimeUtil.generateDay(srcAsDate, 3);
+		Date expected = isoFmt.parse("2012-02-03T00:00:00.000GMT-06:00");
 		Assert.assertEquals(expected, actual);
 
 		// January 31, 2012 midnight, offset -2 days
-		actual = CSTimeUtil.generateDay(2012, 1, 31, -2);
-		expected = isoNoTzFormat.parse("2012-01-29T00:00:00.000");
+		src = "2012-01-31T00:00:00.000GMT-06:00";
+		srcAsDate = isoFmt.parse(src);
+		actual = CSTimeUtil.generateDay(srcAsDate, -2);
+		expected = isoFmt.parse("2012-01-29T00:00:00.000GMT-06:00");
 		Assert.assertEquals(expected, actual);
 
 		// February 28, 2012 midnight, offset +1 day (leap year)
-		actual = CSTimeUtil.generateDay(2012, 2, 28, 1);
-		expected = isoNoTzFormat.parse("2012-02-29T00:00:00.000");
+		src = "2012-02-28T00:00:00.000GMT-06:00";
+		srcAsDate = isoFmt.parse(src);
+		actual = CSTimeUtil.generateDay(srcAsDate, 1);
+		expected = isoFmt.parse("2012-02-29T00:00:00.000GMT-06:00");
 		Assert.assertEquals(expected, actual);
 
 		// February 28, 2011 midnight, offset +1 day (non-leap year)
-		actual = CSTimeUtil.generateDay(2011, 2, 28, 1);
-		expected = isoNoTzFormat.parse("2011-03-01T00:00:00.000");
+		src = "2011-02-28T00:00:00.000GMT-06:00";
+		srcAsDate = isoFmt.parse(src);
+		actual = CSTimeUtil.generateDay(srcAsDate, 1);
+		expected = isoFmt.parse("2011-03-01T00:00:00.000GMT-06:00");
 		Assert.assertEquals(expected, actual);
 
 		// December 31, 2011 midnight, offset +3 days
-		actual = CSTimeUtil.generateDay(2011, 12, 31, 3);
-		expected = isoNoTzFormat.parse("2012-01-03T00:00:00.000");
+		src = "2011-12-31T00:00:00.000GMT-06:00";
+		srcAsDate = isoFmt.parse(src);
+		actual = CSTimeUtil.generateDay(srcAsDate, 3);
+		expected = isoFmt.parse("2012-01-03T00:00:00.000GMT-06:00");
 		Assert.assertEquals(expected, actual);
 
 		// January 1, 2012 midnight, offset -5 days
-		actual = CSTimeUtil.generateDay(2012, 1, 0, -5);
-		expected = isoNoTzFormat.parse("2011-12-27T00:00:00.000");
+		src = "2012-01-01T00:00:00.000GMT-06:00";
+		srcAsDate = isoFmt.parse(src);
+		actual = CSTimeUtil.generateDay(srcAsDate, -5);
+		expected = isoFmt.parse("2011-12-27T00:00:00.000GMT-06:00");
 		Assert.assertEquals(expected, actual);
 
 		// November 3, 2011 midnight, offset + 6 days
-		actual = CSTimeUtil.generateDay(2011, 11, 3, 6);
-		expected = isoNoTzFormat.parse("2011-11-09T00:00:00.000");
+		src = "2011-11-03T00:00:00.000GMT-05:00";
+		srcAsDate = isoFmt.parse(src);
+		actual = CSTimeUtil.generateDay(srcAsDate, 6);
+		expected = isoFmt.parse("2011-11-09T00:00:00.000GMT-06:00");
 		Assert.assertEquals(expected, actual);
 
 		// November 4, 2012 midnight, offset + 1 day
-		actual = CSTimeUtil.generateDay(2012, 11, 4, 1);
-		expected = isoNoTzFormat.parse("2012-11-05T00:00:00.000");
+		src = "2012-11-04T00:00:00.000GMT-05:00";
+		srcAsDate = isoFmt.parse(src);
+		actual = CSTimeUtil.generateDay(srcAsDate, 1);
+		expected = isoFmt.parse("2012-11-05T00:00:00.000GMT-06:00");
 		Assert.assertEquals(expected, actual);
 
 		// June 3, 2011 midnight, offset + 1 day
-		actual = CSTimeUtil.generateDay(2011, 6, 3, 1);
-		expected = isoNoTzFormat.parse("2011-06-04T00:00:00.000");
+		src = "2011-06-03T00:00:00.000GMT-05:00";
+		srcAsDate = isoFmt.parse(src);
+		actual = CSTimeUtil.generateDay(srcAsDate, 1);
+		expected = isoFmt.parse("2011-06-04T00:00:00.000GMT-05:00");
 		Assert.assertEquals(expected, actual);
 	}
 
@@ -467,13 +498,13 @@ public class CSTimeUtilTestGwt extends GWTTestCase {
 
 
 	@Test
-	public void testConvertIsoNoMillisToHour() {
+	public void testConvertIsoNoMillisToHourLabel() {
 		String actual;
 		String expected;
 
 		// standard time
 		for (int i = 0; i < 24; i++) {
-			actual = CSTimeUtil.convertIsoNoMillisToHour(STD_TIMES_NO_MILLIS[i]);
+			actual = CSTimeUtil.convertIsoNoMillisToHourLabel(STD_TIMES_NO_MILLIS[i]);
 			expected = normalDayLabels[i];
 			Assert.assertEquals(expected, actual);
 		}
@@ -481,7 +512,7 @@ public class CSTimeUtilTestGwt extends GWTTestCase {
 
 		// daylight savings to standard
 		for (int i = 0; i < 25; i++) {
-			actual = CSTimeUtil.convertIsoNoMillisToHour(DST_TO_STD_TIMES_NO_MILLIS[i]);
+			actual = CSTimeUtil.convertIsoNoMillisToHourLabel(DST_TO_STD_TIMES_NO_MILLIS[i]);
 			expected = longDayLabels[i];
 			Assert.assertEquals(expected, actual);
 		}
@@ -489,7 +520,7 @@ public class CSTimeUtilTestGwt extends GWTTestCase {
 
 		// standard to daylight savings
 		for (int i = 0; i < 23; i++) {
-			actual = CSTimeUtil.convertIsoNoMillisToHour(STD_TO_DST_TIMES_NO_MILLIS[i]);
+			actual = CSTimeUtil.convertIsoNoMillisToHourLabel(STD_TO_DST_TIMES_NO_MILLIS[i]);
 			expected = shortDayLabels[i];
 			Assert.assertEquals(expected, actual);
 		}
@@ -497,8 +528,8 @@ public class CSTimeUtilTestGwt extends GWTTestCase {
 	}
 
 	@Test
-	public void testConvertIsoNoMillisToMinute() {
-		final String actual = CSTimeUtil.convertIsoNoMillisToMinute("2012-11-03T20:05:00GMT-05:00");
+	public void testConvertIsoNoMillisToMinuteLabel() {
+		final String actual = CSTimeUtil.convertIsoNoMillisToMinuteLabel("2012-11-03T20:05:00GMT-05:00");
 		final String expected = "05";
 		Assert.assertEquals(expected, actual);
 	}
